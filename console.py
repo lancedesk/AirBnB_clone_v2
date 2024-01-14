@@ -73,8 +73,8 @@ class HBNBCommand(cmd.Cmd):
                 pline = pline[2].strip()  # pline is now str
                 if pline:
                     # check for *args or **kwargs
-                    if pline[0] is '{' and pline[-1] is'}'\
-                            and type(eval(pline)) is dict:
+                    if pline[0] is '{' and pline[-1] is '}'\
+                             and type(eval(pline)) is dict:
                         _args = pline
                     else:
                         _args = pline.replace(',', '')
@@ -114,14 +114,38 @@ class HBNBCommand(cmd.Cmd):
         pass
 
     def do_create(self, args):
-        """ Create an object of any class"""
+        """ Create an object of any class with given parameters"""
         if not args:
             print("** class name missing **")
             return
-        elif args not in HBNBCommand.classes:
+
+        # Split the input arguments into class name and parameters
+        args_list = args.split(' ', 1)
+        class_name = args_list[0]
+        parameters = args_list[1] if len(args_list) > 1 else ""
+
+        if class_name not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
-        new_instance = HBNBCommand.classes[args]()
+
+        # Parse the parameters to create a dictionary of key-value pairs
+        param_dict = {}
+        try:
+            param_pairs = parameters.split(',')
+            for pair in param_pairs:
+                key, value = pair.strip().split('=')
+                # Replace underscores with spaces in the key
+                key = key.replace('_', ' ')
+                # Handle quoted values
+                if value[0] == '\"' and value[-1] == '\"':
+                    value = value[1:-1]
+                param_dict[key] = value
+        except Exception as e:
+            print("** Invalid parameters format: {}".format(str(e)))
+            return
+
+        # Create an instance of specified class with provided parameters
+        new_instance = HBNBCommand.classes[class_name](**param_dict)
         storage.save()
         print(new_instance.id)
         storage.save()
@@ -319,6 +343,7 @@ class HBNBCommand(cmd.Cmd):
         """ Help information for the update class """
         print("Updates an object with new information")
         print("Usage: update <className> <id> <attName> <attVal>\n")
+
 
 if __name__ == "__main__":
     HBNBCommand().cmdloop()
