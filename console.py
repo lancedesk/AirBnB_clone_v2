@@ -153,7 +153,12 @@ class HBNBCommand(cmd.Cmd):
         # Create an instance of specified class with provided parameters
         new_instance = HBNBCommand.classes[class_name](**param_dict)
         storage.save()
-        print(new_instance.id)
+
+        # Print the 'id' attribute if it exists in the instance
+        if hasattr(new_instance, 'id'):
+            print(new_instance.id)
+        else:
+            print("** instance has no attribute 'id' **")
         storage.save()
 
     def help_create(self):
