@@ -137,8 +137,16 @@ class HBNBCommand(cmd.Cmd):
                 # Replace underscores with spaces in the key
                 key = key.replace('_', ' ')
                 # Handle quoted values
-                if value[0] == '\"' and value[-1] == '\"':
-                    value = value[1:-1]
+                if value.startswith('"') and value.endswith('"'):
+                    value = value[1:-1].replace('\\"', '"')
+                # Convert value to appropriate type if possible
+                try:
+                    if '.' in value:
+                        value = float(value)
+                    else:
+                        value = int(value)
+                except ValueError:
+                    pass
                 param_dict[key] = value
 
             # Add 'updated_at' and 'created_at' with current timestamp
