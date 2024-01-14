@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """ Console Module """
+import uuid
 import re
 import os
 from datetime import datetime
