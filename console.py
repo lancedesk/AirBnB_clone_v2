@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """ Console Module """
+from datetime import datetime
 import cmd
 import sys
 from models.base_model import BaseModel
@@ -139,6 +140,12 @@ class HBNBCommand(cmd.Cmd):
                 if value[0] == '\"' and value[-1] == '\"':
                     value = value[1:-1]
                 param_dict[key] = value
+
+            # Add 'updated_at' and 'created_at' with current timestamp
+            current_time = datetime.utcnow().isoformat()
+            param_dict['updated_at'] = current_time
+            param_dict['created_at'] = current_time
+
         except Exception as e:
             print("** Invalid parameters format: {}".format(str(e)))
             return
