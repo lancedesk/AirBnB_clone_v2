@@ -4,8 +4,7 @@ Deletes out-of-date archives using the function do_clean.
 """
 
 import os
-from fabric.api import env, run, local
-from datetime import datetime
+from fabric.api import *
 
 # Servers' IP addresses
 env.hosts = ['54.90.14.221', '204.236.240.155']
@@ -21,26 +20,17 @@ def do_clean(number=0):
             2: Keep the two most recent versions.
             etc.
     """
-    number = int(number)
-    if number < 1:
-        number = 1
+    number = 1 if int(number) == 0 else int(number)
 
     # Local cleaning
-    local_archives = sorted(os.listdir("versions"))
-    for _ in range(number):
-        if local_archives:
-            local_archives.pop()
+    zips = sorted(os.listdir("versions"))
+    [zips.pop() for i in range(number)]
     with lcd("versions"):
-        for archive in local_archives:
-            local("rm ./{}".format(archive))
+        [local("rm ./{}".format(a)) for a in zips]
 
     # Remote cleaning
     with cd("/data/web_static/releases"):
-        remote_archives = run("ls -tr").split()
-        remote_archives = [archive for archive in remote_archives
-                           if "web_static_" in archive]
-        for _ in range(number):
-            if remote_archives:
-                remote_archives.pop()
-        for archive in remote_archives:
-            run("rm -rf ./{}".format(archive))
+        zips = run("ls -tr").split()
+        zips = [a for a in zips if "web_static_" in a]
+        [zips.pop() for i in range(number)]
+        [run("rm -rf ./{}".format(a)) for a in zips]
