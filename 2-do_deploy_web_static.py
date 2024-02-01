@@ -1,90 +1,52 @@
 #!/usr/bin/python3
 """
-Fabric script that distributes an archive to my two web servers
+Fabric script that distributes an archive to your web servers
 """
 
+from fabric.api import env, put, run
 import os
-from datetime import datetime
-from fabric.api import *
 
-env.user = "ubuntu"
-env.hosts = ["54.90.14.221", "204.236.240.155"]
-
-
-def do_pack():
-    """
-    Creates a compressed archive of the web_static directory
-    and stores it in the versions directory.
-
-    Returns:
-        str: Path to created archive file if successful, None otherwise.
-    """
-    try:
-        if not os.path.isdir("versions"):
-            os.makedirs("versions")
-
-        date = datetime.now()
-        zip_output = "versions/web_static_{0}{1}{2}{3}{4}{5}".format(
-            date.year,
-            date.month,
-            date.day,
-            date.hour,
-            date.minute,
-            date.second
-        )
-        zip_output += ".tgz"
-        local("tar -cvzf {} web_static".format(zip_output))
-        return zip_output
-
-    except Exception:
-        return None
+# Define your servers' IP addresses
+env.hosts = ['54.90.14.221', '204.236.240.155']
+# Define the user to connect as
+env.user = 'ubuntu'
 
 
 def do_deploy(archive_path):
     """
-    Deploys the compressed archive to the web servers.
-
-    Args:
-        archive_path (str): Path to the archive file to deploy.
-
-    Returns:
-        bool: True if the deployment is successful, False otherwise.
+    Distributes an archive to your web servers
     """
+    if not os.path.exists(archive_path):
+        return False
 
     try:
-        if not os.path.isfile(archive_path):
-            return False
+        # Upload the archive to the /tmp/ directory of the web server
+        put(archive_path, "/tmp/")
 
-        zip_path = archive_path.split("/")[1]
-        zip_name = zip_path.split(".")[0]
-        put(archive_path, "/tmp/{0}".format(zip_path))
+        # Uncompress the archive to the folder
+        # /data/web_static/releases/<archive filename without extension>
 
-        run("sudo mkdir -p /data/web_static/releases/{}/".format(zip_name))
-        src = "sudo tar -xzf /tmp/{0} -C".format(zip_path)
-        dst = "/data/web_static/releases/{0}/".format(zip_name)
+        archive_filename = os.path.basename(archive_path)
+        archive_name_no_ext = archive_filename.split('.')[0]
+        releases_folder = "/data/web_static/releases/"
+        release_folder = releases_folder + archive_name_no_ext + "/"
+        run("mkdir -p {}".format(release_folder))
+        run("tar -xzf /tmp/{} -C {}".format(archive_filename, release_folder))
 
-        run(src + " " + dst)
-        run("sudo rm /tmp/{0}".format(zip_path))
+        # Delete the archive from the web server
+        run("rm /tmp/{}".format(archive_filename))
 
-        releases_dir = "/data/web_static/releases"
-        src = (
-            "sudo mv {}/{}/web_static/*".format(releases_dir, zip_name)
-        )
+        # Move contents of release_folder/web_static/ to release_folder/
+        run("mv {}web_static/* {}".format(release_folder, release_folder))
+        run("rm -rf {}web_static".format(release_folder))
 
-        dst = "/data/web_static/releases/{0}/".format(zip_name)
-        run(src + " " + dst)
+        # Delete the symbolic link /data/web_static/current from the web server
+        run("rm -rf /data/web_static/current")
 
-        releases_2_dir = "/data/web_static/releases"
-        run(
-            "sudo rm -rf {}/{}/web_static".format(releases_2_dir, zip_name)
-        )
+        # Create a new symbolic link
+        run("ln -s {} /data/web_static/current".format(release_folder))
 
-        run("sudo rm -rf /data/web_static/current")
-        src = "sudo ln -s /data/web_static/releases/{0}/".format(zip_name)
-        dst = "/data/web_static/current"
-        run(src + " " + dst)
-
+        print("New version deployed!")
         return True
-
-    except Exception:
+    except Exception as e:
         return False
