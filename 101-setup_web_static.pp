@@ -1,63 +1,88 @@
 # Puppet manifest to set up web servers for deployment of web_static
 
-# Install Nginx package
-package { 'nginx':
-  ensure => installed,
-}
-
-# Define the Nginx configuration file content
-$nginx_config_content = @(EOT)
-  server {
+# Nginx config file
+$configuration = "server {
     listen 80 default_server;
     listen [::]:80 default_server;
-
-    server_name _;
-
-    location /hbnb_static/ {
-        alias /data/web_static/current/;
+    add_header X-Served-By ${hostname};
+    root   /var/www/html;
+    index  index.html index.htm;
+    location /hbnb_static {
+        alias /data/web_static/current;
+        index index.html index.htm;
     }
-
-    location / {
-        root /var/www/html;
-        index index.html index.htm index.nginx-debian.html;
+    location /redirect_me {
+        return 301 https://th3-gr00t.tk;
     }
-  }
-EOT
+    error_page 404 /404.html;
+    location /404 {
+      root /var/www/html;
+      internal;
+    }
+}"
 
-# Configure Nginx
-file { '/etc/nginx/sites-available/default':
-  ensure  => file,
-  content => $nginx_config_content,
-  require => Package['nginx'],
-}
+package { 'nginx':
+  ensure   => 'present',
+  provider => 'apt'
+} ->
 
-# Create necessary directories
-file { ['/data/web_static/releases/test/', '/data/web_static/shared/']:
-  ensure => directory,
-}
+file { '/data':
+  ensure  => 'directory'
+} ->
 
-# Create a fake HTML file with simple content
+file { '/data/web_static':
+  ensure => 'directory'
+} ->
+
+file { '/data/web_static/releases':
+  ensure => 'directory'
+} ->
+
+file { '/data/web_static/releases/test':
+  ensure => 'directory'
+} ->
+
+file { '/data/web_static/shared':
+  ensure => 'directory'
+} ->
+
 file { '/data/web_static/releases/test/index.html':
-  ensure  => file,
-  content => '<html><head></head><body>Holberton School</body></html>',
-}
+  ensure  => 'present',
+  content => "Holberton School Puppet\n"
+} ->
 
-# Create a symbolic link to the 'test' release
 file { '/data/web_static/current':
-  ensure => link,
-  target => '/data/web_static/releases/test/',
+  ensure => 'link',
+  target => '/data/web_static/releases/test'
+} ->
+
+exec { 'chown -R ubuntu:ubuntu /data/':
+  path => '/usr/bin/:/usr/local/bin/:/bin/'
 }
 
-# Set ownership of the /data/ folder to the ubuntu user and group recursively
-exec { 'set_ownership':
-  command => 'chown -R ubuntu:ubuntu /data/',
-  path    => '/bin:/usr/bin',
-  onlyif  => 'test ! -L /data/web_static',
-}
+file { '/var/www':
+  ensure => 'directory'
+} ->
 
-# Restart Nginx service
-service { 'nginx':
-  ensure    => running,
-  enable    => true,
-  subscribe => File['/etc/nginx/sites-available/default'],
+file { '/var/www/html':
+  ensure => 'directory'
+} ->
+
+file { '/var/www/html/index.html':
+  ensure  => 'present',
+  content => "Holberton School Nginx\n"
+} ->
+
+file { '/var/www/html/404.html':
+  ensure  => 'present',
+  content => "Ceci n'est pas une page\n"
+} ->
+
+file { '/etc/nginx/sites-available/default':
+  ensure  => 'present',
+  content => $configuration
+} ->
+
+exec { 'nginx restart':
+  path => '/etc/init.d/'
 }
