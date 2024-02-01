@@ -1,12 +1,13 @@
 #!/usr/bin/python3
 """
-Fabric script that deletes out-of-date archives
+Deletes out-of-date archives using the function do_clean.
 """
 
+import os
 from fabric.api import env, run, local
-from os.path import exists
 from datetime import datetime
 
+# Servers' IP addresses
 env.hosts = ['54.90.14.221', '204.236.240.155']
 
 
@@ -15,23 +16,31 @@ def do_clean(number=0):
     Deletes out-of-date archives.
 
     Args:
-        number (int): Number of archives to keep.
-                      0 or 1: Keep only the most recent version.
-                      2: Keep the most recent and second most recent versions.
-                      etc.
+        number (int): The number of archives to keep. Default is 0.
+            0 or 1: Keep only the most recent version.
+            2: Keep the two most recent versions.
+            etc.
     """
     number = int(number)
     if number < 1:
         number = 1
-    else:
-        number += 1
 
-    local_archives = local("ls -1t versions", capture=True).split("\n")
-    local_count = len(local_archives)
-    for i in range(number, local_count):
-        local("rm -f versions/{}".format(local_archives[i]))
+    # Local cleaning
+    local_archives = sorted(os.listdir("versions"))
+    for _ in range(number):
+        if local_archives:
+            local_archives.pop()
+    with lcd("versions"):
+        for archive in local_archives:
+            local("rm ./{}".format(archive))
 
-    remote_archives = run("ls -1t /data/web_static/releases").split("\n")
-    remote_count = len(remote_archives)
-    for i in range(number, remote_count):
-        run("rm -rf /data/web_static/releases/{}".format(remote_archives[i]))
+    # Remote cleaning
+    with cd("/data/web_static/releases"):
+        remote_archives = run("ls -tr").split()
+        remote_archives = [archive for archive in remote_archives
+                           if "web_static_" in archive]
+        for _ in range(number):
+            if remote_archives:
+                remote_archives.pop()
+        for archive in remote_archives:
+            run("rm -rf ./{}".format(archive))
