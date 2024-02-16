@@ -4,20 +4,18 @@ State Module for HBNB project
 """
 
 from models.base_model import BaseModel, Base
+from models import storage_type
+from models.city import City
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
-from os import getenv
-from models.stringtemplates import HBNB_TYPE_STORAGE, DB
 
 
 class State(BaseModel, Base):
     """
     State class for storing state information
     """
-
     __tablename__ = 'states'
-
-    if (getenv(HBNB_TYPE_STORAGE) == DB):
+    if storage_type == 'db':
         name = Column(String(128), nullable=False)
         cities = relationship('City', backref='state',
                               cascade='all, delete, delete-orphan')
@@ -30,13 +28,9 @@ class State(BaseModel, Base):
             Getter attribute for cities in a state
             """
             from models import storage
-
-            list_cities = []
-            data = storage.all()
-            for city in data:
-                try:
-                    if data[city].state_id == self.id:
-                        list_cities.append(data[city])
-                except Exception:
-                    pass
-            return list_cities
+            related_cities = []
+            cities = storage.all(City)
+            for city in cities.values():
+                if city.state_id == self.id:
+                    related_cities.append(city)
+            return related_cities
