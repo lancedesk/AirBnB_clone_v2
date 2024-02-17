@@ -28,13 +28,13 @@ class DBStorage:
         Instantiate new database storage instance
         """
         user = getenv("HBNB_MYSQL_USER")
-        pwd = getenv("HBNB_MYSQL_password")
-        db = getenv("HBNB_MYSQL_database")
+        pwd = getenv("HBNB_MYSQL_PWD")
+        db = getenv("HBNB_MYSQL_DB")
         host = getenv("HBNB_MYSQL_HOST")
         environment = getenv("HBNB_ENV")
 
         self.__engine = create_engine(
-            "mysql+mysqldatabase://{}:{}@{}/{}".format(user, pwd, host, db),
+            "mysql+mysqldb://{}:{}@{}/{}".format(user, pwd, host, db),
             pool_pre_ping=True,
         )
 
