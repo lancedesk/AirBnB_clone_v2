@@ -7,12 +7,13 @@ from os import getenv
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine
 from models.base_model import Base
+from models.amenity import Amenity
 from models.state import State
 from models.city import City
 from models.user import User
 from models.place import Place
 from models.review import Review
-from models.amenity import Amenity
+
 
 
 class DBStorage:
@@ -31,14 +32,14 @@ class DBStorage:
         pwd = getenv("HBNB_MYSQL_PWD")
         db = getenv("HBNB_MYSQL_DB")
         host = getenv("HBNB_MYSQL_HOST")
-        environment = getenv("HBNB_ENV")
+        env = getenv("HBNB_ENV")
 
         self.__engine = create_engine(
             "mysql+mysqldb://{}:{}@{}/{}".format(user, pwd, host, db),
             pool_pre_ping=True,
         )
 
-        if environment == "test":
+        if env == "test":
             Base.metadata.drop_all(self.__engine)
 
     def all(self, cls=None):
@@ -49,22 +50,22 @@ class DBStorage:
         Returns:
             dict: Dictionary of objects
         """
-        my_dict = {}
+        dict = {}
         if cls:
             if type(cls) is str:
                 cls = eval(cls)
-            search= self.__session.query(cls)
-            for s in search:
-                key = "{}.{}".format(type(s).__name__, s.id)
-                my_dict[key] = s
+            query = self.__session.query(cls)
+            for q in query:
+                key = "{}.{}".format(type(q).__name__, q.id)
+                dict[key] = q
         else:
             class_list = [State, City, Place, Amenity, Review, User]
             for c in class_list:
-                search= self.__session.query(c)
-                for s in search:
-                    key = "{}.{}".format(type(s).__name__, s.id)
-                    my_dict[key] = s
-        return my_dict
+                query = self.__session.query(c)
+                for q in query:
+                    key = "{}.{}".format(type(q).__name__, q.id)
+                    dict[key] = q
+        return dict
 
     def new(self, obj):
         """
@@ -103,10 +104,10 @@ class DBStorage:
         Creates all tables in the database and initializes a new session
         """
         Base.metadata.create_all(self.__engine)
-        start_session = sessionmaker(
+        make_session = sessionmaker(
             bind=self.__engine, expire_on_commit=False
         )
-        Session = scoped_session(start_session)
+        Session = scoped_session(make_session)
         self.__session = Session()
 
     def close(self):
