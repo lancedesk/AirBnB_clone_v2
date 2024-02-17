@@ -102,13 +102,11 @@ class DBStorage:
         """
         Creates all tables in the database and initializes a new session
         """
-        if self.__session:
-            self.__session.close()  # Close the existing session if it exists
         Base.metadata.create_all(self.__engine)
-        make_session = sessionmaker(
+        start_session = sessionmaker(
             bind=self.__engine, expire_on_commit=False
         )
-        Session = scoped_session(make_session)
+        Session = scoped_session(start_session)
         self.__session = Session()
 
     def close(self):
