@@ -15,7 +15,7 @@ from models.review import Review
 from models.amenity import Amenity
 
 
-class databaseStorage:
+class DBStorage:
     """
     This class handles the storage of objects using a relational database
     """
